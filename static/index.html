@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOMO Intelligence</title><link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+<aside class="rail"><div class="brandmark">✦</div><div class="rail-item active">▦</div><div class="rail-item">◎</div><div class="rail-item">▤</div><div class="rail-bottom">F</div></aside>
+<main class="main">
+<header class="header"><div><div class="eyebrow">DOCUMENT OPERATIONS / LIVE MONITORING</div><h1>FOMO <em>Intelligence</em></h1><p>From OneDrive to structured intelligence.</p></div><div class="online"><span class="live-dot"></span><span id="connection">Connecting...</span></div></header>
+<section class="metrics"><div class="metric"><span>INBOX ENTRIES</span><strong id="inbox-count">—</strong><small>Live directory</small></div><div class="metric"><span>OUTBOX ENTRIES</span><strong id="outbox-count">—</strong><small>Output directories</small></div><div class="metric"><span>PROCESSING STATE</span><strong class="status-text" id="state-label">Connecting</strong><small id="state-folder">Waiting for server</small></div><div class="metric"><span>LAST UPDATE</span><strong class="time" id="last-update">—</strong><small>Auto-refresh every 2s</small></div></section>
+<section class="grid"><div class="panel radar-panel"><div class="panel-head"><h2>Live intake</h2><span class="tag">MONITORING</span></div><div class="radar-wrap"><div class="radar" id="radar"><div class="orbit o1"></div><div class="orbit o2"></div><div class="orbit o3"></div><div class="sweep"></div><div class="core">✧</div></div></div><h3 id="pulse-title">Scanning for new content</h3><p id="pulse-detail">Waiting for a new subfolder in OneDrive inbox...</p><div class="steps"><span id="s-detected">01 Detected</span><span id="s-stabilizing">02 Syncing</span><span id="s-processing">03 FOMO AI</span><span id="s-completed">04 Complete</span></div></div>
+<div class="panel files-panel"><div class="panel-head"><h2>OneDrive <span>Inbox</span></h2><span class="micro">LIVE FILESYSTEM</span></div><div id="inbox-items" class="items empty">Loading folder...</div></div></section>
+<section class="grid lower"><div class="panel files-panel"><div class="panel-head"><h2>OneDrive <span>Outbox</span></h2><span class="micro">GENERATED RESULTS</span></div><div id="outbox-items" class="items empty">Loading folder...</div></div><div class="panel result-panel"><div class="panel-head"><h2>✦ Latest AI extraction</h2><div class="actions"><button id="copy" type="button">Copy</button><button id="download" type="button">Download</button></div></div><div class="result-info" id="result-info">No results yet</div><div class="tabs"><button id="view-formatted" class="selected">Formatted</button><button id="view-raw">Raw markdown</button></div><article id="result" class="result">Waiting for the first completed document...</article></div></section>
+<section class="panel log-panel"><div class="panel-head"><h2>Activity log</h2><span class="micro">RECENT PIPELINE EVENTS</span></div><div id="logs" class="logs">Waiting for activity...</div></section>
+<footer>FOMO Intelligence <span>Local workstation dashboard · Sensitive data stays on this machine unless sent by the existing pipeline</span></footer>
+</main></div><script src="/static/app.js"></script></body></html>
