@@ -5,9 +5,9 @@ Usage:
     python credit_assessment.py <file.md>       # a specific step-1 result
     python credit_assessment.py <outbox folder> # the step-1 result inside that folder
 
-All three templates (TEMPLATE_FILES) are sent with every request; the model picks the one matching
-the request type. Templates are read from TEMPLATES_DIR (default: ./templates, override with
-env CREDIT_TEMPLATES_DIR or --templates).
+Every template file in TEMPLATES_DIR (default: ./templates, override with env CREDIT_TEMPLATES_DIR
+or --templates) is sent with every request, whatever its name; the model classifies the request,
+picks the matching template from its content and reports both in the first two lines of the answer.
 
 Writes next to the source markdown:
     assessment_input.txt      - the exact prompt sent to the model
@@ -28,17 +28,12 @@ from assessment_prompt import LOAN_TYPES, build_assessment_prompt
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = Path(os.getenv("CREDIT_TEMPLATES_DIR", ROOT / "templates"))
-# Loan type key (see assessment_prompt.LOAN_TYPES) -> template file name inside TEMPLATES_DIR.
-TEMPLATE_FILES = {
-    "remontowy": "kredyt_remontowy.docx",
-    "linia_kredytowa": "linia_kredytowa.docx",
-    "zwykly": "kredyt.docx",
-}
+EXPECTED_TEMPLATES = 3  # one per loan type in assessment_prompt.LOAN_TYPES
 ASSESSMENT_SUFFIX = "_assessment.md"
 ASSESSMENT_MAX_TOKENS = 8192
 TEXT_SUFFIXES = {".txt", ".md", ".csv", ".json", ".xml", ".log"}
 MAX_XLSX_ROWS = 2000
-TYPE_MARKER = re.compile(r"^RODZAJ_WNIOSKU\s*:\s*([a-z_]+)$", re.IGNORECASE)
+MARKER = re.compile(r"^(RODZAJ_WNIOSKU|SZABLON)\s*:\s*(.+?)$", re.IGNORECASE)
 
 log = logging.getLogger("fomo.assessment")
 
@@ -137,18 +132,25 @@ def read_template(path: Path) -> str | None:
     return pipeline.read_document(path)
 
 
-def load_templates(folder: Path) -> dict[str, tuple[str, str]]:
+def load_templates(folder: Path) -> list[tuple[str, str]]:
     folder = pipeline.long_path(folder)
-    missing = [name for name in TEMPLATE_FILES.values() if not (folder / name).is_file()]
-    if missing:
-        raise RuntimeError(f"Missing templates in {folder}: {', '.join(missing)}")
-    templates = {}
-    for key, name in TEMPLATE_FILES.items():
-        log.info("Reading template %s (%s)", name, LOAN_TYPES[key]["label"])
-        text = read_template(folder / name)
+    if not folder.is_dir():
+        raise RuntimeError(f"Templates folder not found: {folder}")
+    # Skip Word lock files (~$name.docx) and hidden files.
+    files = sorted(p for p in folder.iterdir() if p.is_file() and not p.name.startswith(("~$", ".")))
+    templates = []
+    for path in files:
+        text = read_template(path)
         if not text:
-            raise RuntimeError(f"Template {name} is empty")
-        templates[key] = (name, text)
+            log.warning("Template %s is empty or unsupported - skipped", path.name)
+            continue
+        first_line = next((l.lstrip("# ") for l in text.splitlines() if l.strip()), "")
+        log.info("Template %s: %s", path.name, first_line[:80])
+        templates.append((path.name, text))
+    if not templates:
+        raise RuntimeError(f"No templates in {folder}")
+    if len(templates) != EXPECTED_TEMPLATES:
+        log.warning("Expected %d templates (one per loan type), found %d in %s", EXPECTED_TEMPLATES, len(templates), folder)
     return templates
 
 
@@ -176,18 +178,21 @@ def find_source(arg: str | None) -> Path:
 
 # ---------------------------------------------------------------- Pipeline
 
-def split_type(answer: str) -> tuple[str | None, str]:
-    """Pull the 'RODZAJ_WNIOSKU: <key>' marker off the first non-empty line of the answer."""
+def split_markers(answer: str) -> tuple[dict[str, str], str]:
+    """Pull the leading 'RODZAJ_WNIOSKU: …' / 'SZABLON: …' lines off the answer."""
     lines = answer.strip().splitlines()
-    for i, line in enumerate(lines):
-        if not line.strip():
+    markers, i = {}, 0
+    while i < len(lines):
+        if not lines[i].strip():
+            i += 1
             continue
-        # Tolerate markdown decoration the model may add around the marker (bold, code, heading).
-        m = TYPE_MARKER.match(re.sub(r"[*`#>]", "", line).strip())
-        if m and m.group(1).lower() in LOAN_TYPES:
-            return m.group(1).lower(), "\n".join(lines[i + 1:]).strip()
-        break
-    return None, answer.strip()
+        # Tolerate markdown decoration the model may add around the markers (bold, code, heading).
+        m = MARKER.match(re.sub(r"[*`#>]", "", lines[i]).strip())
+        if not m:
+            break
+        markers[m.group(1).upper()] = m.group(2).strip()
+        i += 1
+    return markers, "\n".join(lines[i:]).strip()
 
 
 def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
@@ -203,18 +208,20 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
     log.info("Sending assessment prompt to FOMO (%d chars)", len(prompt))
     answer = pipeline.call_fomo([{"text": prompt}], ASSESSMENT_MAX_TOKENS)
 
-    loan_type, body = split_type(answer)
-    if loan_type:
-        log.info("Request type: %s", LOAN_TYPES[loan_type]["label"])
-    else:
-        log.warning("Model did not return a valid RODZAJ_WNIOSKU marker")
+    markers, body = split_markers(answer)
+    loan_type = markers.get("RODZAJ_WNIOSKU", "").lower()
+    loan_type = loan_type if loan_type in LOAN_TYPES else None
+    template = markers.get("SZABLON")
+    template = template if template in {name for name, _ in templates} else None
+    log.info("Request type: %s, template: %s",
+             LOAN_TYPES[loan_type]["label"] if loan_type else "not recognised", template or "not recognised")
 
     out_file = out_dir / f"{source_md.stem}{ASSESSMENT_SUFFIX}"
     header = [
         f"# Ocena zdolności kredytowej – {out_dir.name}",
         "",
         f"- **Rodzaj wniosku:** {LOAN_TYPES[loan_type]['label'] if loan_type else 'nieustalony'}",
-        f"- **Szablon:** `{templates[loan_type][0] if loan_type else '—'}`",
+        f"- **Szablon:** {f'`{template}`' if template else 'nieustalony'}",
         f"- **Oceniono:** {datetime.now():%Y-%m-%d %H:%M:%S}",
         f"- **Wniosek:** `{source_md.name}`",
         f"- **Model:** `{pipeline.MODEL_ID}`",

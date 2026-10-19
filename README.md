@@ -32,13 +32,7 @@ The app imports `read_inbox.py`, so that script must keep its `if __name__ == '_
 
 `credit_assessment.py` sends a step-1 result (`outbox/<stamp>/<stamp>.md`) plus three Word templates to FOMO. The model classifies the request (renovation loan / credit line / regular loan), estimates the maximum loan amount or limit, and fills the matching template. The prompt lives in `assessment_prompt.py`: request types and their cues in `LOAN_TYPES`, general lending rules (DSTI, stress rate, DTI, LTV, terms, living costs) in `DEFAULT_RULES`. Rules written in a template take precedence.
 
-Put the templates in `templates/` next to the scripts, named as in `TEMPLATE_FILES` in `credit_assessment.py`:
-
-| Request type | File |
-|---|---|
-| Renovation loan (`remontowy`) | `kredyt_remontowy.docx` |
-| Credit line (`linia_kredytowa`) | `linia_kredytowa.docx` |
-| Regular loan (`zwykly`) | `kredyt.docx` |
+Put the three templates (one per request type) in `templates/` next to the scripts. File names do not matter: every file in the folder is sent, and the model decides from each template's content which one fits the request. The first two lines of the answer name the detected request type and the chosen template file; both are shown in the draft header. On start the script logs each template's first line, so you can see what was loaded.
 
 ```powershell
 python -m pip install python-docx openpyxl
