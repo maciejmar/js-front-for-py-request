@@ -1,78 +1,90 @@
+/* Nordea Sans is proprietary: used if installed (Nordea workstations) or if its .woff2 files are put in static/fonts/. */
+@font-face { font-family: "Nordea Sans"; font-weight: 400; font-display: swap;
+  src: local("Nordea Sans Small"), local("NordeaSansSmall-Regular"), local("Nordea Sans"), url("fonts/NordeaSansSmall-400.woff2") format("woff2"); }
+@font-face { font-family: "Nordea Sans"; font-weight: 500 700; font-display: swap;
+  src: local("Nordea Sans Small Medium"), local("NordeaSansSmall-Medium"), local("Nordea Sans Medium"), url("fonts/NordeaSansSmall-500.woff2") format("woff2"); }
+
 :root {
   color-scheme: light;
-  --bg: #eef1f8;
-  --bg-blob-1: rgba(99, 102, 241, .22);
-  --bg-blob-2: rgba(20, 184, 166, .18);
-  --bg-blob-3: rgba(236, 72, 153, .14);
+  --bg: #f5f8ff;
+  --bg-blob-1: rgba(51, 153, 255, .20);
+  --bg-blob-2: rgba(220, 237, 255, .95);
+  --bg-blob-3: rgba(245, 211, 204, .55);
   --card: #ffffff;
-  --card-2: #f7f8fd;
-  --line: rgba(30, 41, 80, .09);
-  --text: #141b2d;
-  --muted: #667089;
-  --soft: #f1f3fa;
+  --card-2: #f5f8ff;
+  --line: rgba(0, 0, 94, .10);
+  --text: #00005e;
+  --muted: #5c5c72;
+  --soft: #eaf4ff;
 
-  --blue: #3b6cf6;
-  --violet: #8b5cf6;
-  --teal: #0fa7a0;
-  --amber: #f08c1a;
-  --pink: #e8488a;
-  --ok: #12a26a;
-  --bad: #e03e3e;
+  --blue: #0000a0;
+  --violet: #0000ff;
+  --teal: #2a9d84;
+  --amber: #e5484d;
+  --pink: #f5d3cc;
+  --ok: #2a9d84;
+  --bad: #c00404;
 
-  --grad-brand: linear-gradient(135deg, #3b6cf6 0%, #8b5cf6 55%, #e8488a 100%);
-  --grad-blue: linear-gradient(135deg, #4f7cff, #2b4fd8);
-  --grad-violet: linear-gradient(135deg, #a07bff, #6d3fe0);
-  --grad-teal: linear-gradient(135deg, #2cc9b5, #0b8a8f);
-  --grad-amber: linear-gradient(135deg, #ffb547, #ec6f1c);
+  --grad-brand: linear-gradient(135deg, #00005e 0%, #0000a0 50%, #3399ff 100%);
+  --grad-blue: linear-gradient(135deg, #3399ff, #0000a0);
+  --grad-violet: linear-gradient(135deg, #0000ff, #00005e);
+  --grad-teal: linear-gradient(135deg, #40bfa3, #206052);
+  --grad-amber: linear-gradient(135deg, #fc6161, #c00404);
 
   /* Layered shadows: contact shadow + ambient + long tinted drop, plus a top highlight for depth. */
   --depth:
     inset 0 1px 0 rgba(255, 255, 255, .9),
     0 1px 2px rgba(20, 30, 70, .06),
     0 6px 14px -4px rgba(20, 30, 70, .08),
-    0 22px 40px -18px rgba(50, 60, 140, .22);
+    0 22px 40px -18px rgba(0, 0, 94, .22);
   --depth-hover:
     inset 0 1px 0 rgba(255, 255, 255, .9),
     0 2px 4px rgba(20, 30, 70, .06),
     0 14px 26px -8px rgba(20, 30, 70, .12),
-    0 36px 60px -22px rgba(50, 60, 140, .32);
+    0 36px 60px -22px rgba(0, 0, 94, .32);
 
-  --sans: "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sans: "Nordea Sans", "Nordea Sans Small", "NordeaSansSmall", "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0b0e17;
-    --bg-blob-1: rgba(99, 102, 241, .22);
-    --bg-blob-2: rgba(20, 184, 166, .12);
-    --bg-blob-3: rgba(236, 72, 153, .10);
-    --card: #161b29;
-    --card-2: #121623;
-    --line: rgba(160, 175, 230, .10);
-    --text: #e8ecf6;
-    --muted: #8f9ab3;
-    --soft: #1d2335;
+    --bg: #00002a;
+    --bg-blob-1: rgba(0, 0, 255, .28);
+    --bg-blob-2: rgba(51, 153, 255, .12);
+    --bg-blob-3: rgba(245, 211, 204, .08);
+    --card: #08084a;
+    --card-2: #05053a;
+    --line: rgba(234, 244, 255, .12);
+    --text: #eaf4ff;
+    --muted: #a6b4d4;
+    --soft: #0e0e5c;
 
-    --blue: #7a9bff;
-    --violet: #b195ff;
-    --teal: #3fd6c4;
-    --amber: #ffb04d;
-    --pink: #ff7ab0;
-    --ok: #44d495;
-    --bad: #ff7f7f;
+    --blue: #3399ff;
+    --violet: #8cc4ff;
+    --teal: #40bfa3;
+    --amber: #fc6161;
+    --pink: #f5d3cc;
+    --ok: #40bfa3;
+    --bad: #fc6161;
+
+    --grad-brand: linear-gradient(135deg, #0000a0 0%, #0000ff 50%, #3399ff 100%);
+    --grad-blue: linear-gradient(135deg, #8cc4ff, #3399ff);
+    --grad-violet: linear-gradient(135deg, #dcedff, #6fa8ff);
+    --grad-teal: linear-gradient(135deg, #7fe0c9, #40bfa3);
+    --grad-amber: linear-gradient(135deg, #ffb0a3, #fc6161);
 
     --depth:
       inset 0 1px 0 rgba(255, 255, 255, .06),
       0 1px 2px rgba(0, 0, 0, .4),
       0 8px 18px -6px rgba(0, 0, 0, .5),
-      0 26px 48px -20px rgba(40, 30, 120, .55);
+      0 26px 48px -20px rgba(0, 0, 20, .6);
     --depth-hover:
       inset 0 1px 0 rgba(255, 255, 255, .08),
       0 2px 4px rgba(0, 0, 0, .4),
       0 16px 30px -8px rgba(0, 0, 0, .55),
-      0 40px 70px -24px rgba(60, 40, 160, .65);
+      0 40px 70px -24px rgba(0, 0, 20, .7);
   }
 }
 
@@ -103,13 +115,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   gap: 16px; margin-bottom: 28px;
 }
 .brand { display: flex; align-items: center; gap: 14px; }
-.logo {
-  width: 44px; height: 44px; border-radius: 13px;
-  background: var(--grad-brand);
-  color: #fff; display: grid; place-items: center;
-  font-weight: 700; font-size: 20px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 18px -6px rgba(110, 80, 240, .6);
-}
+.logo { display: block; width: 112px; height: auto; fill: var(--blue); flex: none; }
+.brand-divider { width: 1px; height: 36px; background: var(--line); }
 h1 {
   font-size: 24px; letter-spacing: -.02em;
   background: linear-gradient(90deg, var(--text) 0%, var(--text) 55%, var(--violet) 100%);
@@ -171,6 +178,8 @@ h1 {
 .metric.m-violet { --c: var(--violet); --g: var(--grad-violet); }
 .metric.m-teal   { --c: var(--teal);   --g: var(--grad-teal); }
 .metric.m-amber  { --c: var(--amber);  --g: var(--grad-amber); }
+/* Coral is a Nordea accent, but red digits read as an error - keep the clock value navy. */
+.metric.m-amber strong { background: var(--grad-violet); -webkit-background-clip: text; background-clip: text; }
 /* Coloured wash in the corner and a glare that follows the pointer (set from app.js). */
 .metric::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -282,7 +291,7 @@ h1 {
   background: var(--grad-brand);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(110, 80, 240, .7);
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 160, .55);
   transform: translateY(-1px);
 }
 .steps li.active .num { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.4); color: #fff; }
@@ -327,7 +336,7 @@ h1 {
 .actions button:active { transform: translateY(0); }
 .actions #download {
   background: var(--grad-brand); color: #fff; border-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 6px 14px -6px rgba(110, 80, 240, .7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 6px 14px -6px rgba(0, 0, 160, .55);
 }
 .result-info { color: var(--muted); font-size: 12px; margin-top: -8px; overflow-wrap: anywhere; }
 
@@ -428,7 +437,7 @@ h1 {
 .result pre {
   margin: 0 0 14px; padding: 14px 16px; overflow: auto;
   border-radius: 10px;
-  background: linear-gradient(160deg, #1b2033, #141826);
+  background: linear-gradient(160deg, #00005e, #00003a);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px -10px rgba(0,0,0,.5);
 }
 .result pre code { padding: 0; background: none; color: #dfe6ff; font-size: 12.5px; line-height: 1.6; white-space: pre; }
@@ -473,11 +482,11 @@ h1 {
   flex: none; width: 34px; height: 34px; border-radius: 9px;
   display: grid; place-items: center;
   background: var(--grad-blue); color: #fff; font-size: 15px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 10px -4px rgba(59, 108, 246, .6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 10px -4px rgba(51, 153, 255, .6);
 }
 #outbox-items .file-icon {
   background: var(--grad-violet);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 10px -4px rgba(139, 92, 246, .6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 10px -4px rgba(0, 0, 160, .5);
 }
 .file-details { flex: 1; min-width: 0; }
 .file-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
