@@ -197,6 +197,9 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
     templates = load_templates(templates_dir)
 
     prompt = build_assessment_prompt(application, templates)
+    out_dir = source_md.parent
+    # Save the prompt before the call, so a failed FOMO request still leaves it for inspection.
+    (out_dir / "assessment_input.txt").write_text(prompt, encoding="utf-8")
     log.info("Sending assessment prompt to FOMO (%d chars)", len(prompt))
     answer = pipeline.call_fomo([{"text": prompt}], ASSESSMENT_MAX_TOKENS)
 
@@ -206,8 +209,6 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
     else:
         log.warning("Model did not return a valid RODZAJ_WNIOSKU marker")
 
-    out_dir = source_md.parent
-    (out_dir / "assessment_input.txt").write_text(prompt, encoding="utf-8")
     out_file = out_dir / f"{source_md.stem}{ASSESSMENT_SUFFIX}"
     header = [
         f"# Ocena zdolności kredytowej – {out_dir.name}",

@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import os
+import logging
 import mimetypes
 import sys
 import time
 import threading
+import traceback
 from pathlib import Path
 from datetime import datetime
 from collections import deque
@@ -33,9 +35,11 @@ STABLE = float(getattr(pipeline, "STABLE_SECONDS", 10))
 STEP1_INPUT = "combined_input.txt"
 # Give up on an outbox folder that never receives both files (e.g. OneDrive sync stalled).
 OUTBOX_INCOMPLETE_TIMEOUT = 15 * 60
+ASSESSMENT_ERROR_FILE = "assessment_error.txt"
 # Stages that persist on screen until the next event, instead of falling back to "waiting".
 RESTING_STAGES = {"waiting", "extracted", "assessing", "completed", "failed"}
 
+log = logging.getLogger("fomo.dashboard")
 lock = threading.RLock()
 stop = threading.Event()
 state = {"stage": "waiting", "folder": None, "since": None, "error": None, "events": deque(maxlen=50), "started": time.time()}
@@ -118,11 +122,13 @@ def watch_outbox():
         OUTBOX.mkdir(parents=True, exist_ok=True)
         known = {p.name for p in OUTBOX.iterdir() if p.is_dir()}
         pending = {}  # name -> (snapshot, stable since, first seen)
+        log.info("Outbox watcher: watching %s (%d existing folders ignored), templates in %s", OUTBOX, len(known), assessment.TEMPLATES_DIR)
         while not stop.is_set():
             try:
                 now = time.monotonic()
                 for p in OUTBOX.iterdir():
                     if p.is_dir() and p.name not in known and p.name not in pending:
+                        log.info("Outbox watcher: new folder %s, waiting for %s + <stamp>.md", p.name, STEP1_INPUT)
                         pending[p.name] = (snapshot(p), now, now)
                 for name, (old, since, first) in list(pending.items()):
                     folder = OUTBOX / name
@@ -148,11 +154,20 @@ def watch_outbox():
                             continue  # already assessed (e.g. by a manual credit_assessment.py run)
                         try:
                             event("assessing", name)
+                            log.info("Credit assessment started for %s", name)
                             assessment.assess(source)
+                            (folder / ASSESSMENT_ERROR_FILE).unlink(missing_ok=True)
                             event("completed", name)
                         except Exception as exc:
+                            log.exception("Credit assessment failed for %s", name)
+                            # Leave the reason next to the case, where people look for the draft.
+                            try:
+                                (folder / ASSESSMENT_ERROR_FILE).write_text(traceback.format_exc(), encoding="utf-8")
+                            except OSError:
+                                pass
                             event("failed", name, f"Assessment: {exc}"[:300])
             except Exception as exc:
+                log.exception("Outbox watcher error")
                 event("failed", error=f"Outbox watcher: {exc}"[:300])
             stop.wait(max(0.5, POLL))
     except Exception as exc:
@@ -235,4 +250,5 @@ def api_state():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=False, workers=1)
