@@ -43,3 +43,12 @@ python credit_assessment.py "<outbox>\<stamp>"   # a specific case
 **Automatic run from the dashboard.** `python dashboard.py` starts a second watcher on `OUTBOX_DIR`. When a new outbox folder contains both `combined_input.txt` and `<stamp>.md` and has stopped changing for `STABLE_SECONDS`, it runs the assessment once. This also covers folders written by a standalone `read_inbox.py` or synced in by OneDrive. Folders that existed at startup, or that already contain `*_assessment.md`, are skipped; a folder still missing one of the two files after 15 minutes is reported as failed. The manual command above stays available for re-running a single case.
 
 Output next to the source: `assessment_input.txt` (exact prompt) and `<stamp>_assessment.md` (detected request type + filled template). Copy both `.py` files next to `read_inbox.py`.
+
+## Step 3: customer reply draft
+
+Right after the assessment, `credit_assessment.py` makes a second FOMO call (`build_customer_reply_prompt` in `assessment_prompt.py`) that turns the step-1 data and the assessment into a draft letter to the customer: `<stamp>_customer_reply.md` (prompt in `customer_reply_input.txt`). The model picks the letter type (offer, reduced offer, documents request, or needs review = meeting invitation, never a rejection), writes in the customer's language, leaves out internal metrics (DSTI, DTI, LTV, stress rate, risks), and leaves bank-system values (interest rate, APR, instalment, total cost, validity date, advisor) as `[placeholders]`. Notes for the advisor are listed above the letter. The draft must be reviewed and completed by an advisor before sending.
+
+```powershell
+python credit_assessment.py "<outbox>\<stamp>" --reply-only   # regenerate only the letter
+python credit_assessment.py "<outbox>\<stamp>" --no-reply     # assessment without the letter
+```

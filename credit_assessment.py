@@ -1,17 +1,22 @@
 """Step 2: classify the step-1 loan request and fill the matching bank template with a maximum-loan estimate.
+Step 3: turn the assessment into a draft reply to the customer.
 
 Usage:
     python credit_assessment.py                 # newest <stamp>.md in OUTBOX_DIR
     python credit_assessment.py <file.md>       # a specific step-1 result
     python credit_assessment.py <outbox folder> # the step-1 result inside that folder
+    ... --no-reply                              # assessment only
+    ... --reply-only                            # regenerate the customer reply from an existing assessment
 
 Every template file in TEMPLATES_DIR (default: ./templates, override with env CREDIT_TEMPLATES_DIR
 or --templates) is sent with every request, whatever its name; the model classifies the request,
 picks the matching template from its content and reports both in the first two lines of the answer.
 
 Writes next to the source markdown:
-    assessment_input.txt      - the exact prompt sent to the model
-    <stamp>_assessment.md     - the filled template
+    assessment_input.txt      - the exact step-2 prompt sent to the model
+    <stamp>_assessment.md     - the filled template (internal, for the analyst)
+    customer_reply_input.txt  - the exact step-3 prompt
+    <stamp>_customer_reply.md - draft letter to the customer, for the advisor to complete and send
 """
 from __future__ import annotations
 
@@ -24,16 +29,24 @@ from datetime import datetime
 from pathlib import Path
 
 import read_inbox as pipeline
-from assessment_prompt import LOAN_TYPES, build_assessment_prompt
+from assessment_prompt import LETTER_TYPES, LOAN_TYPES, build_assessment_prompt, build_customer_reply_prompt
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = Path(os.getenv("CREDIT_TEMPLATES_DIR", ROOT / "templates"))
 EXPECTED_TEMPLATES = 3  # one per loan type in assessment_prompt.LOAN_TYPES
 ASSESSMENT_SUFFIX = "_assessment.md"
 ASSESSMENT_MAX_TOKENS = 8192
+REPLY_SUFFIX = "_customer_reply.md"
+REPLY_MAX_TOKENS = 4096
+LETTER_TYPE_LABELS_PL = {
+    "offer": "Oferta",
+    "reduced_offer": "Oferta na niższą kwotę",
+    "documents_request": "Prośba o dokumenty",
+    "needs_review": "Do decyzji doradcy (zaproszenie na spotkanie)",
+}
 TEXT_SUFFIXES = {".txt", ".md", ".csv", ".json", ".xml", ".log"}
 MAX_XLSX_ROWS = 2000
-MARKER = re.compile(r"^(RODZAJ_WNIOSKU|SZABLON)\s*:\s*(.+?)$", re.IGNORECASE)
+MARKER = re.compile(r"^(REQUEST_TYPE|TEMPLATE)\s*:\s*(.+?)$", re.IGNORECASE)
 
 log = logging.getLogger("fomo.assessment")
 
@@ -95,10 +108,10 @@ def read_xlsx(path: Path) -> str:
     formulas = load_workbook(path, data_only=False, read_only=True)
     out = []
     for ws_v, ws_f in zip(values.worksheets, formulas.worksheets):
-        out.append(f"### Arkusz: {ws_v.title}")
+        out.append(f"### Sheet: {ws_v.title}")
         for i, (row_v, row_f) in enumerate(zip(ws_v.iter_rows(), ws_f.iter_rows())):
             if i >= MAX_XLSX_ROWS:
-                out.append(f"... (obcięto po {MAX_XLSX_ROWS} wierszach)")
+                out.append(f"... (truncated after {MAX_XLSX_ROWS} rows)")
                 break
             cells = []
             for cv, cf in zip(row_v, row_f):
@@ -157,7 +170,7 @@ def load_templates(folder: Path) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------- Source markdown
 
 def is_step1_result(p: Path) -> bool:
-    return p.suffix.lower() == ".md" and not p.name.endswith(ASSESSMENT_SUFFIX)
+    return p.suffix.lower() == ".md" and not p.name.endswith((ASSESSMENT_SUFFIX, REPLY_SUFFIX))
 
 
 def find_source(arg: str | None) -> Path:
@@ -179,7 +192,7 @@ def find_source(arg: str | None) -> Path:
 # ---------------------------------------------------------------- Pipeline
 
 def split_markers(answer: str) -> tuple[dict[str, str], str]:
-    """Pull the leading 'RODZAJ_WNIOSKU: …' / 'SZABLON: …' lines off the answer."""
+    """Pull the leading 'REQUEST_TYPE: …' / 'TEMPLATE: …' lines off the answer."""
     lines = answer.strip().splitlines()
     markers, i = {}, 0
     while i < len(lines):
@@ -195,7 +208,7 @@ def split_markers(answer: str) -> tuple[dict[str, str], str]:
     return markers, "\n".join(lines[i:]).strip()
 
 
-def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
+def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR, reply: bool = True) -> Path:
     source_md = pipeline.long_path(source_md)
     log.info("Assessing %s", source_md.name)
     application = source_md.read_text(encoding="utf-8", errors="replace")
@@ -209,9 +222,9 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
     answer = pipeline.call_fomo([{"text": prompt}], ASSESSMENT_MAX_TOKENS)
 
     markers, body = split_markers(answer)
-    loan_type = markers.get("RODZAJ_WNIOSKU", "").lower()
+    loan_type = markers.get("REQUEST_TYPE", "").lower()
     loan_type = loan_type if loan_type in LOAN_TYPES else None
-    template = markers.get("SZABLON")
+    template = markers.get("TEMPLATE")
     template = template if template in {name for name, _ in templates} else None
     log.info("Request type: %s, template: %s",
              LOAN_TYPES[loan_type]["label"] if loan_type else "not recognised", template or "not recognised")
@@ -220,7 +233,7 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
     header = [
         f"# Ocena zdolności kredytowej – {out_dir.name}",
         "",
-        f"- **Rodzaj wniosku:** {LOAN_TYPES[loan_type]['label'] if loan_type else 'nieustalony'}",
+        f"- **Rodzaj wniosku:** {LOAN_TYPES[loan_type]['label_pl'] if loan_type else 'nieustalony'}",
         f"- **Szablon:** {f'`{template}`' if template else 'nieustalony'}",
         f"- **Oceniono:** {datetime.now():%Y-%m-%d %H:%M:%S}",
         f"- **Wniosek:** `{source_md.name}`",
@@ -230,6 +243,65 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR) -> Path:
         "",
     ]
     out_file.write_text("\n".join(header) + body + "\n", encoding="utf-8")
+    log.info("Saved %s", out_file)
+    if reply:
+        write_customer_reply(source_md)
+    return out_file
+
+
+# ---------------------------------------------------------------- Step 3: customer reply
+
+def _is_section(line: str, name: str) -> bool:
+    # Tolerate markdown decoration around the section labels (bold, heading, code).
+    return re.sub(r"[*`#>\s]", "", line).upper() == f"{name}:"
+
+
+def split_reply(answer: str) -> tuple[str | None, str, str]:
+    """Split the step-3 answer into (letter type, notes for the advisor, letter)."""
+    m = re.search(r"LETTER_TYPE\W*:\W*([a-z_]+)", answer, re.IGNORECASE)
+    letter_type = m.group(1).lower() if m and m.group(1).lower() in LETTER_TYPES else None
+    lines = answer.strip().splitlines()
+    notes_at = next((i for i, l in enumerate(lines) if _is_section(l, "NOTES")), None)
+    letter_at = next((i for i, l in enumerate(lines) if _is_section(l, "LETTER")), None)
+    if letter_at is None:
+        return letter_type, "", answer.strip()
+    notes = "\n".join(lines[notes_at + 1:letter_at]).strip() if notes_at is not None and notes_at < letter_at else ""
+    return letter_type, notes, "\n".join(lines[letter_at + 1:]).strip()
+
+
+def write_customer_reply(source_md: Path) -> Path:
+    source_md = pipeline.long_path(source_md)
+    out_dir = source_md.parent
+    assessment_file = out_dir / f"{source_md.stem}{ASSESSMENT_SUFFIX}"
+    if not assessment_file.is_file():
+        raise RuntimeError(f"No assessment to base the reply on: {assessment_file.name}")
+    log.info("Writing customer reply for %s", source_md.name)
+    application = source_md.read_text(encoding="utf-8", errors="replace")
+    assessment = assessment_file.read_text(encoding="utf-8", errors="replace")
+
+    prompt = build_customer_reply_prompt(application, assessment)
+    (out_dir / "customer_reply_input.txt").write_text(prompt, encoding="utf-8")
+    log.info("Sending customer reply prompt to FOMO (%d chars)", len(prompt))
+    answer = pipeline.call_fomo([{"text": prompt}], REPLY_MAX_TOKENS)
+
+    letter_type, notes, letter = split_reply(answer)
+    log.info("Letter type: %s", letter_type or "not recognised")
+    out_file = out_dir / f"{source_md.stem}{REPLY_SUFFIX}"
+    header = [
+        f"# Odpowiedź do klienta (DRAFT) – {out_dir.name}",
+        "",
+        f"- **Typ listu:** {LETTER_TYPE_LABELS_PL.get(letter_type, 'nieustalony')}",
+        f"- **Przygotowano:** {datetime.now():%Y-%m-%d %H:%M:%S}",
+        f"- **Na podstawie:** `{source_md.name}`, `{assessment_file.name}`",
+        "",
+        "> **Draft do sprawdzenia przez doradcę.** Uzupełnij pola w [nawiasach kwadratowych] danymi z systemu banku "
+        "(oprocentowanie, RRSO, rata, koszt całkowity) i zweryfikuj treść przed wysłaniem.",
+        "",
+    ]
+    if notes:
+        header += ["## Do uzupełnienia i sprawdzenia", "", notes, ""]
+    header += ["---", "", ""]
+    out_file.write_text("\n".join(header) + letter + "\n", encoding="utf-8")
     log.info("Saved %s", out_file)
     return out_file
 
@@ -241,8 +313,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Step-1 markdown + 3 bank templates -> FOMO -> filled template with maximum loan estimate")
     parser.add_argument("source", nargs="?", help="step-1 .md file or outbox folder (default: newest in outbox)")
     parser.add_argument("--templates", default=str(TEMPLATES_DIR), metavar="FOLDER", help="folder with the template files")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--no-reply", action="store_true", help="skip the customer reply (step 3)")
+    mode.add_argument("--reply-only", action="store_true", help="only (re)generate the customer reply from an existing assessment")
     args = parser.parse_args()
-    assess(find_source(args.source), Path(args.templates))
+    source = find_source(args.source)
+    if args.reply_only:
+        write_customer_reply(source)
+    else:
+        assess(source, Path(args.templates), reply=not args.no_reply)
 
 
 if __name__ == "__main__":
