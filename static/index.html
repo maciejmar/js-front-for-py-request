@@ -1,18 +1,105 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FOMO Intelligence</title><link rel="stylesheet" href="/static/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOMO Intelligence</title>
+<link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-<div class="app">
-<aside class="rail"><div class="brandmark">✦</div><div class="rail-item active">▦</div><div class="rail-item">◎</div><div class="rail-item">▤</div><div class="rail-bottom">F</div></aside>
-<main class="main">
-<header class="header"><div><div class="eyebrow">DOCUMENT OPERATIONS / LIVE MONITORING</div><h1>FOMO <em>Intelligence</em></h1><p>From OneDrive to structured intelligence.</p></div><div class="online"><span class="live-dot"></span><span id="connection">Connecting...</span></div></header>
-<section class="metrics"><div class="metric"><span>INBOX ENTRIES</span><strong id="inbox-count">—</strong><small>Live directory</small></div><div class="metric"><span>OUTBOX ENTRIES</span><strong id="outbox-count">—</strong><small>Output directories</small></div><div class="metric"><span>PROCESSING STATE</span><strong class="status-text" id="state-label">Connecting</strong><small id="state-folder">Waiting for server</small></div><div class="metric"><span>LAST UPDATE</span><strong class="time" id="last-update">—</strong><small>Auto-refresh every 2s</small></div></section>
-<section class="grid"><div class="panel radar-panel"><div class="panel-head"><h2>Live intake</h2><span class="tag">MONITORING</span></div><div class="radar-wrap"><div class="radar" id="radar"><div class="orbit o1"></div><div class="orbit o2"></div><div class="orbit o3"></div><div class="sweep"></div><div class="core">✧</div></div></div><h3 id="pulse-title">Scanning for new content</h3><p id="pulse-detail">Waiting for a new subfolder in OneDrive inbox...</p><div class="steps"><span id="s-detected">01 Detected</span><span id="s-stabilizing">02 Syncing</span><span id="s-processing">03 FOMO AI</span><span id="s-completed">04 Complete</span></div></div>
-<div class="panel files-panel"><div class="panel-head"><h2>OneDrive <span>Inbox</span></h2><span class="micro">LIVE FILESYSTEM</span></div><div id="inbox-items" class="items empty">Loading folder...</div></div></section>
-<section class="grid lower"><div class="panel files-panel"><div class="panel-head"><h2>OneDrive <span>Outbox</span></h2><span class="micro">GENERATED RESULTS</span></div><div id="outbox-items" class="items empty">Loading folder...</div></div><div class="panel result-panel"><div class="panel-head"><h2>✦ Latest AI extraction</h2><div class="actions"><button id="copy" type="button">Copy</button><button id="download" type="button">Download</button></div></div><div class="result-info" id="result-info">No results yet</div><div class="tabs"><button id="view-formatted" class="selected">Formatted</button><button id="view-raw">Raw markdown</button></div><article id="result" class="result">Waiting for the first completed document...</article></div></section>
-<section class="panel log-panel"><div class="panel-head"><h2>Activity log</h2><span class="micro">RECENT PIPELINE EVENTS</span></div><div id="logs" class="logs">Waiting for activity...</div></section>
-<footer>FOMO Intelligence <span>Local workstation dashboard · Sensitive data stays on this machine unless sent by the existing pipeline</span></footer>
-</main></div><script src="/static/app.js"></script></body></html>
+<main class="page">
+
+  <header class="header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">F</div>
+      <div>
+        <h1>FOMO Intelligence</h1>
+        <p class="subtitle">OneDrive inbox → structured AI extraction</p>
+      </div>
+    </div>
+    <div class="online"><span class="live-dot"></span><span id="connection">Connecting…</span></div>
+  </header>
+
+  <section class="metrics">
+    <div class="card metric">
+      <span class="label">Inbox</span>
+      <strong id="inbox-count">—</strong>
+      <small>entries in folder</small>
+    </div>
+    <div class="card metric">
+      <span class="label">Outbox</span>
+      <strong id="outbox-count">—</strong>
+      <small>generated results</small>
+    </div>
+    <div class="card metric">
+      <span class="label">State</span>
+      <strong class="status-text" id="state-label">Connecting</strong>
+      <small id="state-folder">Waiting for server</small>
+    </div>
+    <div class="card metric">
+      <span class="label">Last update</span>
+      <strong class="time" id="last-update">—</strong>
+      <small>refreshes every 2 s</small>
+    </div>
+  </section>
+
+  <section class="layout">
+
+    <div class="col">
+      <div class="card status-card">
+        <div class="card-head"><h2>Pipeline</h2></div>
+        <div class="status-row">
+          <div class="radar" id="radar" aria-hidden="true"><div class="core"></div></div>
+          <div class="status-text-block">
+            <h3 id="pulse-title">Scanning for new content</h3>
+            <p id="pulse-detail">Waiting for a new subfolder in the inbox…</p>
+          </div>
+        </div>
+        <ol class="steps">
+          <li id="s-detected"><span class="num">1</span>Detected</li>
+          <li id="s-stabilizing"><span class="num">2</span>Syncing</li>
+          <li id="s-processing"><span class="num">3</span>AI processing</li>
+          <li id="s-completed"><span class="num">4</span>Complete</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Activity</h2></div>
+        <div id="logs" class="logs">Waiting for activity…</div>
+      </div>
+    </div>
+
+    <div class="card result-card">
+      <div class="card-head">
+        <h2>Latest extraction</h2>
+        <div class="actions">
+          <button id="copy" type="button">Copy</button>
+          <button id="download" type="button">Download</button>
+        </div>
+      </div>
+      <div class="result-info" id="result-info">No results yet</div>
+      <div class="tabs">
+        <button id="view-formatted" class="selected" type="button">Formatted</button>
+        <button id="view-raw" type="button">Markdown</button>
+      </div>
+      <article id="result" class="result">Waiting for the first completed document…</article>
+    </div>
+
+  </section>
+
+  <section class="files">
+    <div class="card">
+      <div class="card-head"><h2>Inbox</h2><span class="hint">live folder</span></div>
+      <div id="inbox-items" class="items empty">Loading…</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Outbox</h2><span class="hint">generated results</span></div>
+      <div id="outbox-items" class="items empty">Loading…</div>
+    </div>
+  </section>
+
+  <footer>Local dashboard · data stays on this machine unless sent by the existing pipeline</footer>
+</main>
+<script src="static/app.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import mimetypes
 import sys
 import time
 import threading
@@ -14,6 +15,10 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+
+# Windows registry can map .css/.js to text/plain, which makes browsers ignore the stylesheet.
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("text/javascript", ".js")
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
