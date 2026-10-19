@@ -21,22 +21,26 @@
   </header>
 
   <section class="metrics">
-    <div class="card metric">
+    <div class="card metric tilt m-blue">
+      <div class="metric-icon" aria-hidden="true">⇣</div>
       <span class="label">Inbox</span>
       <strong id="inbox-count">—</strong>
       <small>entries in folder</small>
     </div>
-    <div class="card metric">
+    <div class="card metric tilt m-violet">
+      <div class="metric-icon" aria-hidden="true">⇡</div>
       <span class="label">Outbox</span>
       <strong id="outbox-count">—</strong>
       <small>generated results</small>
     </div>
-    <div class="card metric">
+    <div class="card metric tilt m-teal">
+      <div class="metric-icon" aria-hidden="true">◉</div>
       <span class="label">State</span>
       <strong class="status-text" id="state-label">Connecting</strong>
       <small id="state-folder">Waiting for server</small>
     </div>
-    <div class="card metric">
+    <div class="card metric tilt m-amber">
+      <div class="metric-icon" aria-hidden="true">◷</div>
       <span class="label">Last update</span>
       <strong class="time" id="last-update">—</strong>
       <small>refreshes every 2 s</small>
@@ -46,7 +50,7 @@
   <section class="layout">
 
     <div class="col">
-      <div class="card status-card">
+      <div class="card status-card lift">
         <div class="card-head"><h2>Pipeline</h2></div>
         <div class="status-row">
           <div class="radar" id="radar" aria-hidden="true"><div class="core"></div></div>
@@ -63,13 +67,13 @@
         </ol>
       </div>
 
-      <div class="card">
+      <div class="card lift">
         <div class="card-head"><h2>Activity</h2></div>
         <div id="logs" class="logs">Waiting for activity…</div>
       </div>
     </div>
 
-    <div class="card result-card">
+    <div class="card result-card lift">
       <div class="card-head">
         <h2>Latest extraction</h2>
         <div class="actions">
@@ -88,11 +92,11 @@
   </section>
 
   <section class="files">
-    <div class="card">
+    <div class="card lift">
       <div class="card-head"><h2>Inbox</h2><span class="hint">live folder</span></div>
       <div id="inbox-items" class="items empty">Loading…</div>
     </div>
-    <div class="card">
+    <div class="card lift">
       <div class="card-head"><h2>Outbox</h2><span class="hint">generated results</span></div>
       <div id="outbox-items" class="items empty">Loading…</div>
     </div>
