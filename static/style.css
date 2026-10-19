@@ -269,11 +269,11 @@ h1 {
 
 .steps {
   list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
 }
 .steps li {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 10px; border-radius: 10px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 8px; border-radius: 10px; overflow: hidden;
   background: var(--soft);
   border: 1px solid var(--line);
   color: var(--muted);
@@ -528,6 +528,6 @@ footer { margin-top: 28px; text-align: center; color: var(--muted); font-size: 1
   .header { flex-direction: column; align-items: flex-start; }
   .metrics { gap: 12px; }
   .metric strong { font-size: 24px; }
-  .steps { grid-template-columns: repeat(2, 1fr); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .result { padding: 16px; }
 }

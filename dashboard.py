@@ -23,11 +23,18 @@ mimetypes.add_type("text/javascript", ".js")
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 import read_inbox as pipeline
+import credit_assessment as assessment
 
 INBOX = Path(pipeline.INBOX_DIR)
 OUTBOX = Path(pipeline.OUTBOX_DIR)
 POLL = float(getattr(pipeline, "POLL_SECONDS", 5))
 STABLE = float(getattr(pipeline, "STABLE_SECONDS", 10))
+# A step-1 outbox folder is complete when it holds both of these (see read_inbox.process_folder).
+STEP1_INPUT = "combined_input.txt"
+# Give up on an outbox folder that never receives both files (e.g. OneDrive sync stalled).
+OUTBOX_INCOMPLETE_TIMEOUT = 15 * 60
+# Stages that persist on screen until the next event, instead of falling back to "waiting".
+RESTING_STAGES = {"waiting", "extracted", "assessing", "completed", "failed"}
 
 lock = threading.RLock()
 stop = threading.Event()
@@ -77,16 +84,79 @@ def watch():
                         try:
                             event("processing", name)
                             pipeline.process_folder(folder)
-                            event("completed", name)
+                            # The outbox watcher picks the result up and runs the credit assessment.
+                            event("extracted", name)
                         except Exception as exc:
                             event("failed", name, str(exc)[:300])
-                if not pending and state["stage"] not in {"waiting", "completed", "failed"}:
+                if not pending and state["stage"] not in RESTING_STAGES:
                     event("waiting")
             except Exception as exc:
                 event("failed", error=f"Watcher: {exc}"[:300])
             stop.wait(max(0.5, POLL))
     except Exception as exc:
         event("failed", error=f"Watcher startup: {exc}"[:300])
+
+
+def step1_result(folder: Path):
+    """The step-1 markdown in an outbox folder, or None until both step-1 files are present."""
+    try:
+        files = [p for p in folder.iterdir() if p.is_file()]
+    except OSError:
+        return None
+    if not any(p.name == STEP1_INPUT for p in files):
+        return None
+    return next((p for p in files if assessment.is_step1_result(p)), None)
+
+
+def watch_outbox():
+    """Step 2: run the credit assessment for each new outbox folder once it holds combined_input.txt + <stamp>.md.
+
+    Watching the outbox (rather than chaining after process_folder) also covers folders produced by
+    a standalone read_inbox.py run or synced in by OneDrive from another machine.
+    """
+    try:
+        OUTBOX.mkdir(parents=True, exist_ok=True)
+        known = {p.name for p in OUTBOX.iterdir() if p.is_dir()}
+        pending = {}  # name -> (snapshot, stable since, first seen)
+        while not stop.is_set():
+            try:
+                now = time.monotonic()
+                for p in OUTBOX.iterdir():
+                    if p.is_dir() and p.name not in known and p.name not in pending:
+                        pending[p.name] = (snapshot(p), now, now)
+                for name, (old, since, first) in list(pending.items()):
+                    folder = OUTBOX / name
+                    if not folder.is_dir():
+                        pending.pop(name, None)
+                        continue
+                    current = snapshot(folder)
+                    source = step1_result(folder)
+                    if source is None:
+                        if now - first >= OUTBOX_INCOMPLETE_TIMEOUT:
+                            del pending[name]
+                            known.add(name)
+                            event("failed", name, f"Outbox folder incomplete: expected {STEP1_INPUT} and <stamp>.md")
+                        else:
+                            pending[name] = (current, now, first)
+                        continue
+                    if current != old:
+                        pending[name] = (current, now, first)
+                    elif now - since >= STABLE:
+                        del pending[name]
+                        known.add(name)
+                        if any(p.name.endswith(assessment.ASSESSMENT_SUFFIX) for p in folder.iterdir()):
+                            continue  # already assessed (e.g. by a manual credit_assessment.py run)
+                        try:
+                            event("assessing", name)
+                            assessment.assess(source)
+                            event("completed", name)
+                        except Exception as exc:
+                            event("failed", name, f"Assessment: {exc}"[:300])
+            except Exception as exc:
+                event("failed", error=f"Outbox watcher: {exc}"[:300])
+            stop.wait(max(0.5, POLL))
+    except Exception as exc:
+        event("failed", error=f"Outbox watcher startup: {exc}"[:300])
 
 
 def entries(root: Path, limit=200):
@@ -134,11 +204,14 @@ def latest_result():
 async def lifespan(app: FastAPI):
     # Avoid running the same watcher via uvicorn reload/multiple workers.
     stop.clear()
-    thread = threading.Thread(target=watch, name="fomo-watcher", daemon=True)
-    thread.start()
+    threads = [threading.Thread(target=watch, name="fomo-watcher", daemon=True),
+               threading.Thread(target=watch_outbox, name="fomo-assessment-watcher", daemon=True)]
+    for t in threads:
+        t.start()
     yield
     stop.set()
-    thread.join(timeout=3)
+    for t in threads:
+        t.join(timeout=3)
 
 
 app = FastAPI(title="FOMO Intelligence", lifespan=lifespan)

@@ -46,4 +46,6 @@ python credit_assessment.py                      # newest result in outbox
 python credit_assessment.py "<outbox>\<stamp>"   # a specific case
 ```
 
+**Automatic run from the dashboard.** `python dashboard.py` starts a second watcher on `OUTBOX_DIR`. When a new outbox folder contains both `combined_input.txt` and `<stamp>.md` and has stopped changing for `STABLE_SECONDS`, it runs the assessment once. This also covers folders written by a standalone `read_inbox.py` or synced in by OneDrive. Folders that existed at startup, or that already contain `*_assessment.md`, are skipped; a folder still missing one of the two files after 15 minutes is reported as failed. The manual command above stays available for re-running a single case.
+
 Output next to the source: `assessment_input.txt` (exact prompt) and `<stamp>_assessment.md` (detected request type + filled template). Copy both `.py` files next to `read_inbox.py`.
