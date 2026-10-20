@@ -238,6 +238,11 @@ def homepage():
     return FileResponse(ROOT / "static" / "index.html")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(ROOT / "static" / "favicon.ico")
+
+
 @app.get("/api/state")
 def api_state():
     with lock:
