@@ -1,24 +1,21 @@
 """Prompt for step 2: classify the loan request and fill the matching bank template with a maximum-loan estimate."""
 from __future__ import annotations
 
-# Request types: key used in the answer marker, English name for the prompt, Polish name for the
-# draft header, and cues the model uses to classify (Finnish terms, since the step-1 summary is usually Finnish).
+# Request types: key used in the answer marker, display name, and cues the model uses to classify
+# (Finnish terms, since the step-1 summary is usually Finnish).
 LOAN_TYPES = {
     "renovation_loan": {
         "label": "Renovation loan",
-        "label_pl": "Kredyt remontowy",
         "cues": "purpose: renovation, modernisation, refurbishment, finishing or repair of a property "
                 "(remontti, peruskorjaus, kunnostus, saneeraus, putkiremontti, kattoremontti, julkisivuremontti)",
     },
     "credit_line": {
         "label": "Credit line",
-        "label_pl": "Linia kredytowa",
         "cues": "revolving limit that can be drawn repeatedly instead of a one-off payout "
                 "(luottoraja, limiitti, joustoluotto, tililimiitti, luottolimiitti, credit line, overdraft)",
     },
     "standard_loan": {
         "label": "Standard loan",
-        "label_pl": "Zwykły kredyt",
         "cues": "one-off amount repaid in instalments, for a purpose other than renovation "
                 "(laina, asuntolaina, kulutusluotto, autolaina, yhdistelylaina)",
     },

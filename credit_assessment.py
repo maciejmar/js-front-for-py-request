@@ -38,11 +38,11 @@ ASSESSMENT_SUFFIX = "_assessment.md"
 ASSESSMENT_MAX_TOKENS = 8192
 REPLY_SUFFIX = "_customer_reply.md"
 REPLY_MAX_TOKENS = 4096
-LETTER_TYPE_LABELS_PL = {
-    "offer": "Oferta",
-    "reduced_offer": "Oferta na niższą kwotę",
-    "documents_request": "Prośba o dokumenty",
-    "needs_review": "Do decyzji doradcy (zaproszenie na spotkanie)",
+LETTER_TYPE_LABELS = {
+    "offer": "Offer",
+    "reduced_offer": "Offer for a lower amount",
+    "documents_request": "Request for documents",
+    "needs_review": "Advisor decision needed (meeting invitation)",
 }
 TEXT_SUFFIXES = {".txt", ".md", ".csv", ".json", ".xml", ".log"}
 MAX_XLSX_ROWS = 2000
@@ -231,12 +231,12 @@ def assess(source_md: Path, templates_dir: Path = TEMPLATES_DIR, reply: bool = T
 
     out_file = out_dir / f"{source_md.stem}{ASSESSMENT_SUFFIX}"
     header = [
-        f"# Ocena zdolności kredytowej – {out_dir.name}",
+        f"# Credit assessment – {out_dir.name}",
         "",
-        f"- **Rodzaj wniosku:** {LOAN_TYPES[loan_type]['label_pl'] if loan_type else 'nieustalony'}",
-        f"- **Szablon:** {f'`{template}`' if template else 'nieustalony'}",
-        f"- **Oceniono:** {datetime.now():%Y-%m-%d %H:%M:%S}",
-        f"- **Wniosek:** `{source_md.name}`",
+        f"- **Request type:** {LOAN_TYPES[loan_type]['label'] if loan_type else 'not recognised'}",
+        f"- **Template:** {f'`{template}`' if template else 'not recognised'}",
+        f"- **Assessed:** {datetime.now():%Y-%m-%d %H:%M:%S}",
+        f"- **Application:** `{source_md.name}`",
         f"- **Model:** `{pipeline.MODEL_ID}`",
         "",
         "---",
@@ -288,18 +288,18 @@ def write_customer_reply(source_md: Path) -> Path:
     log.info("Letter type: %s", letter_type or "not recognised")
     out_file = out_dir / f"{source_md.stem}{REPLY_SUFFIX}"
     header = [
-        f"# Odpowiedź do klienta (DRAFT) – {out_dir.name}",
+        f"# Customer reply (DRAFT) – {out_dir.name}",
         "",
-        f"- **Typ listu:** {LETTER_TYPE_LABELS_PL.get(letter_type, 'nieustalony')}",
-        f"- **Przygotowano:** {datetime.now():%Y-%m-%d %H:%M:%S}",
-        f"- **Na podstawie:** `{source_md.name}`, `{assessment_file.name}`",
+        f"- **Letter type:** {LETTER_TYPE_LABELS.get(letter_type, 'not recognised')}",
+        f"- **Prepared:** {datetime.now():%Y-%m-%d %H:%M:%S}",
+        f"- **Based on:** `{source_md.name}`, `{assessment_file.name}`",
         "",
-        "> **Draft do sprawdzenia przez doradcę.** Uzupełnij pola w [nawiasach kwadratowych] danymi z systemu banku "
-        "(oprocentowanie, RRSO, rata, koszt całkowity) i zweryfikuj treść przed wysłaniem.",
+        "> **Draft for advisor review.** Fill in the [bracketed] fields with data from the bank's systems "
+        "(interest rate, APR, instalment, total cost) and check the content before sending.",
         "",
     ]
     if notes:
-        header += ["## Do uzupełnienia i sprawdzenia", "", notes, ""]
+        header += ["## To fill in and check", "", notes, ""]
     header += ["---", "", ""]
     out_file.write_text("\n".join(header) + letter + "\n", encoding="utf-8")
     log.info("Saved %s", out_file)
